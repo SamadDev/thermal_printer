@@ -1,12 +1,12 @@
+
 import 'dart:async';
-
-import 'package:bluetooth_thermal_printer/bluetooth_thermal_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'dart:convert';
+import 'package:bluetooth_print/bluetooth_print.dart';
+import 'package:bluetooth_print/bluetooth_print_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-void main() {
-  runApp(MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
   @override
@@ -14,224 +14,53 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
+
+  bool _connected = false;
+  late BluetoothDevice _device;
+  String tips = 'no device connect';
+
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance!.addPostFrameCallback((_) => initBluetooth());
   }
 
-  bool connected = false;
-  List availableBluetoothDevices = [];
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> initBluetooth() async {
+    bluetoothPrint.startScan(timeout: Duration(seconds: 4));
 
-  Future<void> getBluetooth() async {
-    final List? bluetooths = await BluetoothThermalPrinter.getBluetooths;
-    print("Print $bluetooths");
-    setState(() {
-      availableBluetoothDevices = bluetooths!;
+    bool? isConnected=await bluetoothPrint.isConnected;
+
+    bluetoothPrint.state.listen((state) {
+      print('cur device status: $state');
+
+      switch (state) {
+        case BluetoothPrint.CONNECTED:
+          setState(() {
+            _connected = true;
+            tips = 'connect success';
+          });
+          break;
+        case BluetoothPrint.DISCONNECTED:
+          setState(() {
+            _connected = false;
+            tips = 'disconnect success';
+          });
+          break;
+        default:
+          break;
+      }
     });
-  }
 
-  Future<void> setConnect(String mac) async {
-    final String? result = await BluetoothThermalPrinter.connect(mac);
-    print("state conneected $result");
-    if (result == "true") {
+    if (!mounted) return;
+
+    if(isConnected!) {
       setState(() {
-        connected = true;
+        _connected=true;
       });
     }
-  }
-
-  Future<void> printTicket() async {
-    String? isConnected = await BluetoothThermalPrinter.connectionStatus;
-    if (isConnected == "true") {
-      List<int> bytes = await getTicket();
-      final result = await BluetoothThermalPrinter.writeBytes(bytes);
-      print("Print $result");
-    } else {
-      //Hadnle Not Connected Senario
-    }
-  }
-
-  Future<void> printGraphics() async {
-    String? isConnected = await BluetoothThermalPrinter.connectionStatus;
-    if (isConnected == "true") {
-      List<int> bytes = await getGraphicsTicket();
-      final result = await BluetoothThermalPrinter.writeBytes(bytes);
-      print("Print $result");
-    } else {
-      //Hadnle Not Connected Senario
-    }
-  }
-
-  Future<List<int>> getGraphicsTicket() async {
-    List<int> bytes = [];
-
-    CapabilityProfile profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-
-    // Print QR Code using native function
-    bytes += generator.qrcode('example.com');
-
-    bytes += generator.hr();
-
-    // Print Barcode using native function
-    final List<int> barData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 4];
-    bytes += generator.barcode(Barcode.upcA(barData));
-
-    bytes += generator.cut();
-
-    return bytes;
-  }
-
-  Future<List<int>> getTicket() async {
-    List<int> bytes = [];
-    CapabilityProfile profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-
-    bytes += generator.text("Demo Shop",
-        styles: PosStyles(
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-        linesAfter: 1);
-
-    bytes += generator.text(
-        "18th Main Road, 2nd Phase, J. P. Nagar, Bengaluru, Karnataka 560078",
-        styles: PosStyles(align: PosAlign.center));
-    bytes += generator.text('Tel: +919591708470',
-        styles: PosStyles(align: PosAlign.center));
-
-    bytes += generator.hr();
-    bytes += generator.row([
-      PosColumn(
-          text: 'No',
-          width: 1,
-          styles: PosStyles(align: PosAlign.left, bold: true)),
-      PosColumn(
-          text: 'Item',
-          width: 5,
-          styles: PosStyles(align: PosAlign.left, bold: true)),
-      PosColumn(
-          text: 'Price',
-          width: 2,
-          styles: PosStyles(align: PosAlign.center, bold: true)),
-      PosColumn(
-          text: 'Qty',
-          width: 2,
-          styles: PosStyles(align: PosAlign.center, bold: true)),
-      PosColumn(
-          text: 'Total',
-          width: 2,
-          styles: PosStyles(align: PosAlign.right, bold: true)),
-    ]);
-
-    bytes += generator.row([
-      PosColumn(text: "1", width: 1),
-      PosColumn(
-          text: "Tea",
-          width: 5,
-          styles: PosStyles(
-            align: PosAlign.left,
-          )),
-      PosColumn(
-          text: "10",
-          width: 2,
-          styles: PosStyles(
-            align: PosAlign.center,
-          )),
-      PosColumn(text: "1", width: 2, styles: PosStyles(align: PosAlign.center)),
-      PosColumn(text: "10", width: 2, styles: PosStyles(align: PosAlign.right)),
-    ]);
-
-    bytes += generator.row([
-      PosColumn(text: "2", width: 1),
-      PosColumn(
-          text: "Sada Dosa",
-          width: 5,
-          styles: PosStyles(
-            align: PosAlign.left,
-          )),
-      PosColumn(
-          text: "30",
-          width: 2,
-          styles: PosStyles(
-            align: PosAlign.center,
-          )),
-      PosColumn(text: "1", width: 2, styles: PosStyles(align: PosAlign.center)),
-      PosColumn(text: "30", width: 2, styles: PosStyles(align: PosAlign.right)),
-    ]);
-
-    bytes += generator.row([
-      PosColumn(text: "3", width: 1),
-      PosColumn(
-          text: "Masala Dosa",
-          width: 5,
-          styles: PosStyles(
-            align: PosAlign.left,
-          )),
-      PosColumn(
-          text: "50",
-          width: 2,
-          styles: PosStyles(
-            align: PosAlign.center,
-          )),
-      PosColumn(text: "1", width: 2, styles: PosStyles(align: PosAlign.center)),
-      PosColumn(text: "50", width: 2, styles: PosStyles(align: PosAlign.right)),
-    ]);
-
-    bytes += generator.row([
-      PosColumn(text: "4", width: 1),
-      PosColumn(
-          text: "Rova Dosa",
-          width: 5,
-          styles: PosStyles(
-            align: PosAlign.left,
-          )),
-      PosColumn(
-          text: "70",
-          width: 2,
-          styles: PosStyles(
-            align: PosAlign.center,
-          )),
-      PosColumn(text: "1", width: 2, styles: PosStyles(align: PosAlign.center)),
-      PosColumn(text: "70", width: 2, styles: PosStyles(align: PosAlign.right)),
-    ]);
-
-    bytes += generator.hr();
-
-    bytes += generator.row([
-      PosColumn(
-          text: 'TOTAL',
-          width: 6,
-          styles: PosStyles(
-            align: PosAlign.left,
-            height: PosTextSize.size4,
-            width: PosTextSize.size4,
-          )),
-      PosColumn(
-          text: "160",
-          width: 6,
-          styles: PosStyles(
-            align: PosAlign.right,
-            height: PosTextSize.size4,
-            width: PosTextSize.size4,
-          )),
-    ]);
-
-    bytes += generator.hr(ch: '=', linesAfter: 1);
-
-    // ticket.feed(2);
-    bytes += generator.text('سوپاس!',
-        styles: PosStyles(align: PosAlign.center, bold: true));
-
-    bytes += generator.text("26-11-2020 15:22:45",
-        styles: PosStyles(align: PosAlign.center), linesAfter: 1);
-
-    bytes += generator.text(
-        'Note: Goods once sold will not be taken back or exchanged.',
-        styles: PosStyles(align: PosAlign.center, bold: false));
-    bytes += generator.cut();
-    return bytes;
   }
 
   @override
@@ -239,53 +68,140 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Bluetooth Thermal Printer Demo'),
+          title: const Text('BluetoothPrint example app'),
         ),
-        body: Container(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Search Paired Bluetooth"),
-              TextButton(
-                onPressed: () {
-                  this.getBluetooth();
-                },
-                child: Text("Search"),
-              ),
-              Container(
-                height: 200,
-                child: ListView.builder(
-                  itemCount: availableBluetoothDevices.length > 0
-                      ? availableBluetoothDevices.length
-                      : 0,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        String select = availableBluetoothDevices[index];
-                        List list = select.split("#");
-                        String mac = list[1];
-                        this.setConnect(mac);
-                      },
-                      title: Text('${availableBluetoothDevices[index]}'),
-                      subtitle: Text("Click to connect"),
-                    );
-                  },
+        body: RefreshIndicator(
+          onRefresh: () =>
+              bluetoothPrint.startScan(timeout: Duration(seconds: 4)),
+          child: SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                      child: Text(tips),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(
-                height: 30,
-              ),
-              TextButton(
-                onPressed:printGraphics,
-                child: Text("Print"),
-              ),
-              TextButton(
-                onPressed: printTicket ,
-                child: Text("Print Ticket"),
-              ),
-            ],
+                Divider(),
+                StreamBuilder<List<BluetoothDevice>>(
+                  stream: bluetoothPrint.scanResults,
+                  initialData: [],
+                  builder: (c, snapshot) => Column(
+                    children: snapshot.data!.map((d) => ListTile(
+                      title: Text(d.name??''),
+                      subtitle: Text(d.address!),
+                      onTap: () async {
+                        setState(() {
+                          _device = d;
+                        });
+                      },
+                      trailing: _device!=null && _device.address == d.address?Icon(
+                        Icons.check,
+                        color: Colors.green,
+                      ):null,
+                    )).toList(),
+                  ),
+                ),
+                Divider(),
+                Container(
+                  padding: EdgeInsets.fromLTRB(20, 5, 20, 10),
+                  child: Column(
+                    children: <Widget>[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          OutlinedButton(
+                            child: Text('connect'),
+                            onPressed:  _connected?null:() async {
+                              if(_device!=null && _device.address !=null){
+                                await bluetoothPrint.connect(_device);
+                              }else{
+                                setState(() {
+                                  tips = 'please select device';
+                                });
+                                print('please select device');
+                              }
+                            },
+                          ),
+                          SizedBox(width: 10.0),
+                          OutlinedButton(
+                            child: Text('disconnect'),
+                            onPressed:  _connected?() async {
+                              await bluetoothPrint.disconnect();
+                            }:null,
+                          ),
+                        ],
+                      ),
+                      OutlinedButton(
+                        child: Text('print receipt(esc)'),
+                        onPressed:  _connected?() async {
+                          Map<String, dynamic> config = Map();
+                          List<LineText> list = [];
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'الموظع', weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'شیمال', weight: 0, align: LineText.ALIGN_LEFT,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'شیمال', align: LineText.ALIGN_RIGHT,linefeed: 1));
+                          list.add(LineText(linefeed: 1));
+
+                          await bluetoothPrint.printReceipt(config, list);
+                        }:null,
+                      ),
+                      OutlinedButton(
+                        child: Text('print label(tsc)'),
+                        onPressed:  _connected?() async {
+                          Map<String, dynamic> config = Map();
+                          config['width'] = 40; // 标签宽度，单位mm
+                          config['height'] = 70; // 标签高度，单位mm
+                          config['gap'] = 2; // 标签间隔，单位mm
+
+                          // x、y坐标位置，单位dpi，1mm=8dpi
+                          List<LineText> list = [];
+                          list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:10, content: 'الموظع'));
+                          list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:40, content: 'تیست'));
+                          list.add(LineText(type: LineText.TYPE_QRCODE, x:10, y:70, content: 'تیست\n'));
+                          list.add(LineText(type: LineText.TYPE_BARCODE, x:10, y:190, content: 'تیست\n'));
+
+                          List<LineText> list1 = [];
+                          ByteData data = await rootBundle.load("assets/images/guide3.png");
+                          List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                          String base64Image = base64Encode(imageBytes);
+                          list1.add(LineText(type: LineText.TYPE_IMAGE, x:10, y:10, content: base64Image,));
+
+                          await bluetoothPrint.printLabel(config, list);
+                          await bluetoothPrint.printLabel(config, list1);
+                        }:null,
+                      ),
+                      OutlinedButton(
+                        child: Text('print selftest'),
+                        onPressed:  _connected?() async {
+                          await bluetoothPrint.printTest();
+                        }:null,
+                      )
+                    ],
+                  ),
+                )
+              ],
+            ),
           ),
+        ),
+        floatingActionButton: StreamBuilder<bool>(
+          stream: bluetoothPrint.isScanning,
+          initialData: false,
+          builder: (c, snapshot) {
+            if (snapshot.data!) {
+              return FloatingActionButton(
+                child: Icon(Icons.stop),
+                onPressed: () => bluetoothPrint.stopScan(),
+                backgroundColor: Colors.red,
+              );
+            } else {
+              return FloatingActionButton(
+                  child: Icon(Icons.search),
+                  onPressed: () => bluetoothPrint.startScan(timeout: Duration(seconds: 4)));
+            }
+          },
         ),
       ),
     );
