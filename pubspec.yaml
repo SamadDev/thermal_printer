@@ -38,8 +38,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  bluetooth_thermal_printer: ^0.0.6
-  esc_pos_utils: ^1.1.0
+  # bluetooth_print: ^3.0.
+  bluetooth_print:
+    git: https://github.com/shiburagi/bluetooth_print.git
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
