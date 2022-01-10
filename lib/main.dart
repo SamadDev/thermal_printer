@@ -17,7 +17,7 @@ class _MyAppState extends State<MyApp> {
   BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
 
   bool _connected = false;
-  late BluetoothDevice _device;
+   BluetoothDevice? _device;
   String tips = 'no device connect';
 
   @override
@@ -98,7 +98,7 @@ class _MyAppState extends State<MyApp> {
                           _device = d;
                         });
                       },
-                      trailing: _device!=null && _device.address == d.address?Icon(
+                      trailing: _device!=null && _device!.address == d.address?Icon(
                         Icons.check,
                         color: Colors.green,
                       ):null,
@@ -116,8 +116,8 @@ class _MyAppState extends State<MyApp> {
                           OutlinedButton(
                             child: Text('connect'),
                             onPressed:  _connected?null:() async {
-                              if(_device!=null && _device.address !=null){
-                                await bluetoothPrint.connect(_device);
+                              if(_device!=null && _device!.address !=null){
+                                await bluetoothPrint.connect(_device!);
                               }else{
                                 setState(() {
                                   tips = 'please select device';
