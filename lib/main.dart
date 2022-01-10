@@ -136,13 +136,13 @@ class _MyAppState extends State<MyApp> {
                         ],
                       ),
                       OutlinedButton(
-                        child: Text('print receipt(esc)'),
+                        child:const Text('print receipt(esc)'),
                         onPressed:  _connected?() async {
                           Map<String, dynamic> config = Map();
                           List<LineText> list = [];
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'الموظع', weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'شیمال', weight: 0, align: LineText.ALIGN_LEFT,linefeed: 1));
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'شیمال', align: LineText.ALIGN_RIGHT,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: "سەمەد", weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'سەمەد', weight: 0, align: LineText.ALIGN_LEFT,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'سەمەد', align: LineText.ALIGN_RIGHT,linefeed: 1));
                           list.add(LineText(linefeed: 1));
 
                           await bluetoothPrint.printReceipt(config, list);
@@ -155,8 +155,7 @@ class _MyAppState extends State<MyApp> {
                           config['width'] = 40; // 标签宽度，单位mm
                           config['height'] = 70; // 标签高度，单位mm
                           config['gap'] = 2; // 标签间隔，单位mm
-
-                          // x、y坐标位置，单位dpi，1mm=8dpi
+                          config['charset'] = 'UTF-8';
                           List<LineText> list = [];
                           list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:10, content: 'الموظع'));
                           list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:40, content: 'تیست'));
