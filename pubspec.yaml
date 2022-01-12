@@ -41,6 +41,7 @@ dev_dependencies:
   # bluetooth_print: ^3.0.
   bluetooth_print:
     git: https://github.com/shiburagi/bluetooth_print.git
+  flutter_esc_pos_utils: ^0.1.4
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
