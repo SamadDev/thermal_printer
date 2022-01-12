@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:bluetooth_print/bluetooth_print.dart';
 import 'package:bluetooth_print/bluetooth_print_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 void main() => runApp(MyApp());
 
@@ -17,7 +16,7 @@ class _MyAppState extends State<MyApp> {
   BluetoothPrint bluetoothPrint = BluetoothPrint.instance;
 
   bool _connected = false;
-   BluetoothDevice? _device;
+  BluetoothDevice? _device;
   String tips = 'no device connect';
 
   @override
@@ -63,6 +62,13 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  // List<int> encodeUtf(string) {
+  //   return utf8.encode(string);
+  // }
+  // decodeUtf(string){
+  //   return utf8.decode(string);
+  // }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -85,7 +91,6 @@ class _MyAppState extends State<MyApp> {
                     ),
                   ],
                 ),
-                Divider(),
                 StreamBuilder<List<BluetoothDevice>>(
                   stream: bluetoothPrint.scanResults,
                   initialData: [],
@@ -138,46 +143,42 @@ class _MyAppState extends State<MyApp> {
                       OutlinedButton(
                         child:const Text('print receipt(esc)'),
                         onPressed:  _connected?() async {
-                          Map<String, dynamic> config = Map();
+                          Map<String, dynamic> configL = {};
                           List<LineText> list = [];
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: "سەمەد", weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'سەمەد', weight: 0, align: LineText.ALIGN_LEFT,linefeed: 1));
-                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'سەمەد', align: LineText.ALIGN_RIGHT,linefeed: 1));
+
+                          configL['charset'] = 'utf-8';
+                          list.add(LineText(type: LineText.TYPE_TEXT, content:  'الموظع',weight: 1, align: LineText.ALIGN_CENTER,linefeed: 1));
+                          list.add(LineText(type: LineText.TYPE_TEXT, content: 'محمود' , weight: 0, align: LineText.ALIGN_LEFT,linefeed: 1));
                           list.add(LineText(linefeed: 1));
+                          print(list);
+                          await bluetoothPrint.printReceipt(configL, list);
 
-                          await bluetoothPrint.printReceipt(config, list);
                         }:null,
                       ),
-                      OutlinedButton(
-                        child: Text('print label(tsc)'),
-                        onPressed:  _connected?() async {
-                          Map<String, dynamic> config = Map();
-                          config['width'] = 40; // 标签宽度，单位mm
-                          config['height'] = 70; // 标签高度，单位mm
-                          config['gap'] = 2; // 标签间隔，单位mm
-                          config['charset'] = 'UTF-8';
-                          List<LineText> list = [];
-                          list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:10, content: 'الموظع'));
-                          list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:40, content: 'تیست'));
-                          list.add(LineText(type: LineText.TYPE_QRCODE, x:10, y:70, content: 'تیست\n'));
-                          list.add(LineText(type: LineText.TYPE_BARCODE, x:10, y:190, content: 'تیست\n'));
-
-                          List<LineText> list1 = [];
-                          ByteData data = await rootBundle.load("assets/images/guide3.png");
-                          List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-                          String base64Image = base64Encode(imageBytes);
-                          list1.add(LineText(type: LineText.TYPE_IMAGE, x:10, y:10, content: base64Image,));
-
-                          await bluetoothPrint.printLabel(config, list);
-                          await bluetoothPrint.printLabel(config, list1);
-                        }:null,
-                      ),
-                      OutlinedButton(
-                        child: Text('print selftest'),
-                        onPressed:  _connected?() async {
-                          await bluetoothPrint.printTest();
-                        }:null,
-                      )
+                      // OutlinedButton(
+                      //   child: Text('print label(tsc)'),
+                      //   onPressed:  _connected?() async {
+                      //     Map<String, dynamic> config = Map();
+                      //     config['width'] = 40; // 标签宽度，单位mm
+                      //     config['height'] = 70; // 标签高度，单位mm
+                      //     config['gap'] = 2; // 标签间隔，单位mm
+                      //     config['charset'] = 'UTF-8';
+                      //     List<LineText> list = [];
+                      //     list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:10, content: 'الموظع'));
+                      //     list.add(LineText(type: LineText.TYPE_TEXT, x:10, y:40, content: 'تیست'));
+                      //     list.add(LineText(type: LineText.TYPE_QRCODE, x:10, y:70, content: 'تیست\n'));
+                      //     list.add(LineText(type: LineText.TYPE_BARCODE, x:10, y:190, content: 'تیست\n'));
+                      //
+                      //     List<LineText> list1 = [];
+                      //     ByteData data = await rootBundle.load("assets/images/guide3.png");
+                      //     List<int> imageBytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+                      //     String base64Image = base64Encode(imageBytes);
+                      //     list1.add(LineText(type: LineText.TYPE_IMAGE, x:10, y:10, content: base64Image,));
+                      //
+                      //     await bluetoothPrint.printLabel(config, list);
+                      //     await bluetoothPrint.printLabel(config, list1);
+                      //   }:null,
+                      // ),
                     ],
                   ),
                 )
